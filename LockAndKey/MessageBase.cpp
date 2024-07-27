@@ -4,6 +4,9 @@
 #include <random>
 #include "Arduino.h"
 
+std::unordered_map<int, std::string> IntSAtringMap::iToS;
+std::unordered_map<std::string, int> IntSAtringMap::sToI;
+
 std::unordered_map<MessageType, MessageBase::Constructor> MessageBase::constructors;
 
 void MessageBase::registerConstructor(const MessageType& type, Constructor constructor) {
@@ -15,14 +18,14 @@ MessageBase* MessageBase::createInstance(const std::string& input) {
     try {
         MessageBase mBase;
         mBase.deserialize(input);
-        if ( MessageType::typeError==mBase.type)
+        if ( /*MessageType::typeError*/MessageTypeError==mBase.type)
             return nullptr;
         auto it = constructors.find(mBase.type);
         if (it != constructors.end()) {
             Serial.println("Constructor found");
             MessageBase* instance = it->second();
             instance->deserialize(input);
-            if ( MessageType::typeError==instance->type)
+            if ( MessageTypeError==instance->type)
             {                
                 delete instance;
                 return nullptr;
@@ -49,7 +52,7 @@ std::string MessageBase::serialize() {
     json doc;
     doc["sourceAddress"] = sourceAddress;
     doc["destinationAddress"] = destinationAddress;
-    doc["type"] = type;
+    doc["type"] = IntSAtringMap::findString(type);
     doc["requestUUID"] = requestUUID; // Serialize the request UUID
 
     serializeExtraFields(doc);
@@ -63,14 +66,14 @@ void MessageBase::deserialize(const std::string& input) {
     if (doc.is_discarded())
     {
         Serial.println("parsing error");
-        type = MessageType::typeError;
+        type = MessageTypeError;
         return;
     }
 
     sourceAddress = doc["sourceAddress"];
     destinationAddress = doc["destinationAddress"];
 //    Serial.println(doc["type"].get<std::string>().c_str());
-    type = doc["type"];
+    type = IntSAtringMap::findInt (doc["type"]);
 //    if (type==MessageType::reqRegKey)
 //        Serial.println("reqReg!!!");
     requestUUID = doc["requestUUID"]; // Deserialize the request UUID

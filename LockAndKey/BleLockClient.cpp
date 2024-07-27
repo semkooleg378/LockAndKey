@@ -216,7 +216,7 @@ bool BleLockClient::isConnected=false;
                             logColor(LColor::Red,F("Failed to send response message to outgoing queue"));
                             delete responseMessage;
                         }
-                    } else if (msg->type != MessageType::resOk && msg->type != MessageType::resKey && msg->type != MessageType::ReceivePublic) {
+                    } else if (!msg->isFinalMessage) {
                         auto responseMessageStr = new std::string(*receivedMessage);
                         logColor(LColor::LightBlue,F("Sending response message string to response queue"));
                         if (xQueueSend(bleLock->responseQueue, &responseMessageStr, portMAX_DELAY) != pdPASS) {
@@ -263,7 +263,7 @@ bool BleLockClient::isConnected=false;
                                 logColor(LColor::LightBlue,F("Failed to send response message to outgoing queue"));
                                 delete responseMessage;
                             }
-                        } else if (msg->type != MessageType::resOk && msg->type != MessageType::resKey && msg->type != MessageType::ReceivePublic) {
+                        } else if (!msg->isFinalMessage) {
                             auto responseMessageStr = new std::string(*receivedMessage);
                             logColor(LColor::LightBlue,F("Sending response message string to response queue"));
                             if (xQueueSend(bleLock->responseQueue, &responseMessageStr, portMAX_DELAY) != pdPASS) {

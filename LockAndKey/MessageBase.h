@@ -7,7 +7,36 @@
 #include "json.hpp"
 
 using json = nlohmann::json;
-enum class MessageType {
+
+
+class IntSAtringMap
+{
+static std::unordered_map<int, std::string> iToS;
+static std::unordered_map<std::string, int> sToI;
+public:
+    static void insert (int i, std::string s)
+	{
+		iToS[i] = s;
+		sToI[s] = i;
+	}
+	static int findInt (std::string s)
+	{
+		return sToI[s];
+	}
+	static std::string findString (int i)
+	{
+		return iToS[i];
+	}
+	
+	IntSAtringMap(){}
+	~IntSAtringMap(){}
+};
+
+typedef int MessageType;
+
+#define MessageTypeError -1
+
+/*enum class MessageType {
     typeError,
     resOk,
     reqRegKey,
@@ -17,9 +46,9 @@ enum class MessageType {
     resKey, 
     HelloRequest,
     ReceivePublic
-};
+};*/
 
-NLOHMANN_JSON_SERIALIZE_ENUM( MessageType, {
+/*NLOHMANN_JSON_SERIALIZE_ENUM( MessageType, {
     {MessageType::resOk, "resOk"},
     {MessageType::reqRegKey, "reqRegKey"},
     {MessageType::OpenRequest, "OpenRequest"},
@@ -28,7 +57,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM( MessageType, {
     {MessageType::resKey, "resKey"},
     {MessageType::HelloRequest, "HelloRequest"},
     {MessageType::ReceivePublic, "ReceivePublic"}
-})
+})*/
 
 
 class MessageBase {
@@ -37,6 +66,7 @@ public:
     std::string destinationAddress;
     MessageType type;
     std::string requestUUID;
+    bool isFinalMessage=false;
 
     MessageBase() = default;
 
