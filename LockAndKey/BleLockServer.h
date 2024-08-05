@@ -15,6 +15,10 @@ public:
     std::unordered_map<std::string, bool> confirmedCharacteristics;
     std::unordered_map<std::string, std::string> pairedDevices; // map for paired devices
     
+    static std::unordered_map<std::string, bool> confirmedDevices; // map for paired devices
+    static void loadConfirmedDevices();
+    static void saveConfirmedDevices();
+
     static std::unordered_map<std::string, std::string> messageMacBuff; // map for multypart messages
 
     QueueHandle_t incomingQueue{};
@@ -26,9 +30,10 @@ public:
     std::string memoryFilename;
     MessageBase *request(MessageBase *requestMessage, const std::string &destAddr, uint32_t timeout) const;
 
-    bool confirm ()
+    bool confirm (std::string mac)
     { 
-        return true;
+        return confirmedDevices[mac]; 
+        //return true;
     }
 
 

@@ -5,6 +5,8 @@ BleLockServer::BleLockServer(const std::string &lockName)
         memoryFilename = "/ble_lock_memory.json";
     }
 
+BLEUUID servserviceUUID("abcd");
+
 void BleLockServer::setup() {
     BLEDevice::init(lockName);
     macAddress = BLEDevice::getAddress().toString();
@@ -12,7 +14,7 @@ void BleLockServer::setup() {
     pServer = BLEDevice::createServer();
     pServer->setCallbacks(new ServerCallbacks(this));
 
-    pService = pServer->createService("ABCD");
+    pService = pServer->createService(servserviceUUID);//("ABCD");
     createCharacteristic("1234", NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE);
     pPublicCharacteristic->setCallbacks(new PublicCharacteristicCallbacks(this));
     logColor(LColor::LightBlue, F("Public characteristic callbacks set"));
@@ -27,7 +29,7 @@ void BleLockServer::setup() {
         logColor(LColor::Red, F("Failed to get advertising"));
         return;
     }
-    pAdvertising->addServiceUUID("ABCD");
+    pAdvertising->addServiceUUID(servserviceUUID);//("ABCD");
     pAdvertising->addServiceUUID(pService->getUUID()); // Advertise the service UUID
     for (const auto &pair: uniqueCharacteristics) {
         pAdvertising->addServiceUUID(pair.first); // Advertise each characteristic UUID
@@ -56,6 +58,7 @@ void BleLockServer::setup() {
     loadCharacteristicsFromMemory();
 
     secureConnection.LoadRSAKeys();
+    loadConfirmedDevices();
 
 }
 
@@ -152,7 +155,7 @@ void BleLockServer::saveCharacteristicsToMemory() {
     }
     doc["pairedDevices"] = devices;
 
-    File file = SPIFFS.open(memoryFilename.c_str(), FILE_WRITE);
+    File file = SPIFFS.open(memoryFilename.c_str(), FILE_WRITE, true);
     if (file) {
         file.print(doc.dump().c_str());
         logColor(LColor::LightBlue, F("saving.. %s"), doc.dump().c_str());
@@ -219,7 +222,14 @@ void BleLockServer::ServerCallbacks::onConnect(NimBLEServer *pServer, ble_gap_co
     std::string mac = NimBLEAddress(desc->peer_ota_addr).toString();
     logColor(LColor::LightBlue, F("Device connected (mac=%s)"), mac.c_str());
 
-    printCharacteristics(pServer->getServiceByUUID("ABCD"));
+    /// confirmed devices append if needed
+    if (confirmedDevices.find(mac)==confirmedDevices.end())
+    {
+        confirmedDevices[mac] = false;
+        saveConfirmedDevices();
+    }
+
+    printCharacteristics(pServer->getServiceByUUID(servserviceUUID));//("ABCD"));
 }
 
 void BleLockServer::ServerCallbacks::onDisconnect(NimBLEServer *pServer, ble_gap_conn_desc *desc) {
@@ -582,4 +592,57 @@ MessageBase *BleLockServer::request(MessageBase *requestMessage, const std::stri
     }
 
     return nullptr; // This should never be reached, but it's here to satisfy the compiler
+}
+
+std::unordered_map<std::string, bool> BleLockServer::confirmedDevices; // map for paired devices
+void BleLockServer::loadConfirmedDevices()
+{
+    json doc;
+    std::string text;
+
+    File f = SPIFFS.open ("confirmed.json");
+    if (!f)
+        return;
+    size_t sz = f.size();
+    char buf[128];
+    size_t len = sz;
+    while (sz > 0)
+    {
+        if(sz<=128)
+            len = sz;
+        else
+            len = 128;
+        f.readBytes (buf, len);
+        text += std::string(buf,len);
+        sz -= len;
+    }
+    f.close();
+    doc.parse(text,nullptr,false);
+    if (doc.is_discarded())
+    {
+        return;
+    }
+    confirmedDevices.clear();
+    for (auto it = doc.begin(); it!=doc.end(); it++)
+    {
+        BleLockServer::confirmedDevices[it.key()] = it.value();
+    }
+
+}
+void BleLockServer::saveConfirmedDevices()
+{
+    json doc;
+    std::string text;
+
+    for (auto it = BleLockServer::confirmedDevices.begin(); it != BleLockServer::confirmedDevices.end(); it++)
+    {
+        doc[it->first] = it->second;
+    }
+
+    File f = SPIFFS.open ("confirmed.json","w",true);
+    if (!f)
+        return;
+    text = doc.dump();
+    f.write ((uint8_t*)text.c_str(), text.length());
+    f.close();
 }

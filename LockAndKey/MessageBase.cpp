@@ -62,23 +62,35 @@ std::string MessageBase::serialize() {
 
 void MessageBase::deserialize(const std::string& input) {
 //    auto doc = json::parse(input);
-    auto doc = json::parse(input,nullptr,false);
-    if (doc.is_discarded())
-    {
-        Serial.println("parsing error");
-        type = MessageTypeError;
-        return;
+    try {
+        Serial.printf("Parse JSON: <<%s>>\n",input.c_str());
+        auto doc = json::parse(input,nullptr,false);
+        if (doc.is_discarded())
+        {
+            Serial.println("parsing error");
+            type = MessageTypeError;
+            return;
+        }
+
+        sourceAddress = doc["sourceAddress"];
+        destinationAddress = doc["destinationAddress"];
+    //    Serial.println(doc["type"].get<std::string>().c_str());
+        type = IntSAtringMap::findInt (doc["type"]);
+    //    if (type==MessageType::reqRegKey)
+    //        Serial.println("reqReg!!!");
+        requestUUID = doc["requestUUID"]; // Deserialize the request UUID
+
+        deserializeExtraFields(doc);    
+    } catch (json::parse_error& e) {
+        Serial.printf("Failed to parse JSON: %s\n", e.what());
+            type = MessageTypeError;
+    } catch (std::exception& e) {
+        Serial.printf("Exception: %s\n", e.what());
+            type = MessageTypeError;
+    } catch (...) {
+        Serial.println("Unknown error occurred.");
+            type = MessageTypeError;
     }
-
-    sourceAddress = doc["sourceAddress"];
-    destinationAddress = doc["destinationAddress"];
-//    Serial.println(doc["type"].get<std::string>().c_str());
-    type = IntSAtringMap::findInt (doc["type"]);
-//    if (type==MessageType::reqRegKey)
-//        Serial.println("reqReg!!!");
-    requestUUID = doc["requestUUID"]; // Deserialize the request UUID
-
-    deserializeExtraFields(doc);
 }
 
 std::string MessageBase::generateUUID() {
@@ -89,4 +101,31 @@ std::string MessageBase::generateUUID() {
     std::ostringstream oss;
     oss << std::hex << std::setw(8) << std::setfill('0') << distribution(generator);
     return oss.str();
+}
+
+////////////////////
+void IntSAtringMap::insert (int i, std::string s)
+{
+    iToS[i] = s;
+    sToI[s] = i;
+}
+
+int IntSAtringMap::findInt (std::string s)
+{
+    if (sToI.find(s) == sToI.end())
+    {
+        Serial.println((s + "  Type not found - return ERROR!").c_str());
+        return -1;
+    }
+    return sToI[s];
+}
+std::string IntSAtringMap::findString (int i)
+{
+    if (iToS.find(i) == iToS.end())
+    {
+        Serial.print (i);
+        Serial.println("  Type not found - return ERROR!");
+        return "";
+    }
+    return iToS[i];
 }

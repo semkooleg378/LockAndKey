@@ -277,7 +277,7 @@ public:
         
         j["publicKeys"] = publicKeys;
 
-        File file = SPIFFS.open("keys.rsa", FILE_WRITE);
+        File file = SPIFFS.open("keys.rsa", FILE_WRITE,true);
         if (!file) {
             Serial.println("Failed to open file for writing");
             return false;

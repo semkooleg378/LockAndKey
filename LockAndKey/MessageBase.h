@@ -14,19 +14,9 @@ class IntSAtringMap
 static std::unordered_map<int, std::string> iToS;
 static std::unordered_map<std::string, int> sToI;
 public:
-    static void insert (int i, std::string s)
-	{
-		iToS[i] = s;
-		sToI[s] = i;
-	}
-	static int findInt (std::string s)
-	{
-		return sToI[s];
-	}
-	static std::string findString (int i)
-	{
-		return iToS[i];
-	}
+    static void insert (int i, std::string s);
+	static int findInt (std::string s);
+	static std::string findString (int i);
 	
 	IntSAtringMap(){}
 	~IntSAtringMap(){}

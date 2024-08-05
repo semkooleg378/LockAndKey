@@ -25,7 +25,7 @@ public:
             j[kv.first] = kv.second.characteristicUUID;
         }
 
-        File file = SPIFFS.open(DeviceFile, FILE_WRITE);
+        File file = SPIFFS.open(DeviceFile, FILE_WRITE, true);
         if (!file) {
             Serial.println("Failed to open file for writing");
             return;
